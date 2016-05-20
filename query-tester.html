@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head><title>Query (GET/POST) tester</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+<script   src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo="   crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+</head>
+<body style="padding-bottom:20px;">
+ <section class="container" id="postTester">
+	<h3>POST TESTER</h3>
+	<div class="box">
+		<div class="box-body">
+			<div class="form-group">
+				<label for="scriptURL">Адрес обращения:</label>
+				<input id="scriptURL" class="form-control input-lg"  type="text" autocomplete="off" placeholder="">
+			</div>
+			<div class="form-group">
+				<label for="method">Тип запроса:</label>
+				<select id="method"  class="form-control input-lg">
+					<option value="post">POST</option>
+					<option value="get">GET</option>
+				</select>
+			</div>
+			<div id="vars" style="margin-bottom:10px;">
+			</div>
+			<div class="form-group">
+				<button class="btn btn-default btn-sm" id="addVar">+</button>
+			</div>
+			<div class="form-group">
+				<button class="btn btn-default btn-sm" id="send">Отправить</button>
+			</div>
+			<div class="form-group">
+				<label for="answer">Ответ:</label>
+				<textarea class="form-control" id="answer" style="height:200px;"></textarea>
+			</div>
+
+  		</div>
+	</div>
+</section>
+
+<script type="text/javascript">
+	$("#send").bind("click",function(){
+
+		var URL=$("#scriptURL").val();
+		var type=$("#method").val();
+
+		if(URL==""){
+			alert("Адрес обращения не может быть пустой!");
+			return false;
+		}
+
+		$.cookie('TESTER_URL', URL);
+		$.cookie('TESTER_type', type);
+
+		var keys=[];
+		$(".key").each(function(){
+			if($(this).val()==""){alert("Название переменной не может быть пустой!"); return false; }
+			keys.push($(this).val());
+		});
+			
+		var values=[];
+		$(".var").each(function(){
+			values.push($(this).val());
+		});
+			
+		var sendArray=array_combine(keys,values);
+		$.cookie('TESTER_keys', keys.join('|ar|'));
+		$.cookie('TESTER_values', values.join('|ar|'));
+
+		$("#answer").val("...");
+		
+		$.ajax({
+			url: URL,
+			type: type,
+			data: sendArray
+		}).done(function(msg){
+			$("#answer").val(msg);
+          	console.log(msg);
+		}).fail(function(jqXHR, textStatus){
+			$("#answer").val("Request failed: " + textStatus);
+		});
+	});
+		
+
+
+$(function(){
+	
+	$("#addVar").bind("click",function(){
+		appendVar("","");
+	});
+
+	$("#scriptURL").val($.cookie("TESTER_URL"));
+	$("#method").val($.cookie("TESTER_type"));
+
+	var cookie=$.cookie();
+	console.log(cookie)
+	var TESTER_keys=cookie["TESTER_keys"];
+	var TESTER_values=cookie["TESTER_values"];
+
+	if(TESTER_keys){
+		TESTER_keys=TESTER_keys.split("|ar|");
+		
+		if(TESTER_values){
+			TESTER_values=TESTER_values.split("|ar|")
+		}
+	
+		$.each(TESTER_keys,function(i,item){
+			appendVar(item,TESTER_values[i]);
+		});
+
+	}
+
+});
+
+
+function appendVar(key,value){
+	console.log("appendVar("+key+","+value+")")
+	if(!key){
+		key="";
+	}
+	if(!value){
+		value="";
+	}
+
+	$("#vars").append('<div style="margin-bottom:4px;" class="row varRow"><div class="col-md-3"><input type="text" class="key form-control input-md" value="'+key+'" placeholder="Переменная"></div><div class="col-md-3"><textarea class="var form-control" placeholder="Значение переменной">'+value+'</textarea></div><div class="col-md-1"><button class="remover btn btn-default btn-sm" id="addVar">-</button></div></div>');
+
+	$(".remover").unbind("click").bind("click",function(){
+		$(this).parents(".varRow").remove();
+	});
+}
+
+
+function array_combine( keys, values ) {	 
+	var new_array = {}, keycount=keys.length, i;
+
+	// input sanitation
+	if( !keys || !values || keys.constructor !== Array || values.constructor !== Array ){
+		return false;
+	}
+	// number of elements does not match
+	if(keycount != values.length){
+		return false;
+	}
+	for ( i=0; i < keycount; i++ ){
+		new_array[keys[i]] = values[i];
+	}
+	return new_array;
+}
+
+function dump(obj) {
+    var out = "";
+    if(obj && typeof(obj) == "object"){
+        for (var i in obj) {
+            out += i + ": " + obj[i] + "\n";
+        }
+    } else {
+        out = obj;
+    }
+    alert(out);
+}
+
+
+jQuery.cookie = function(name, value, options) {
+    if (typeof value != 'undefined') { // name and value given, set cookie
+        options = options || {};
+        if (value === null) {
+            value = '';
+            options.expires = -1;
+        }
+        var expires = '';
+        if (options.expires && (typeof options.expires == 'number' || options.expires.toUTCString)) {
+            var date;
+            if (typeof options.expires == 'number') {
+                date = new Date();
+                date.setTime(date.getTime() + (options.expires * 24 * 60 * 60 * 1000));
+            } else {
+                date = options.expires;
+            }
+            expires = '; expires=' + date.toUTCString(); // use expires attribute, max-age is not supported by IE
+        }
+        // CAUTION: Needed to parenthesize options.path and options.domain
+        // in the following expressions, otherwise they evaluate to undefined
+        // in the packed version for some reason...
+        var path = options.path ? '; path=' + (options.path) : '';
+        var domain = options.domain ? '; domain=' + (options.domain) : '';
+        var secure = options.secure ? '; secure' : '';
+        document.cookie = [name, '=', encodeURIComponent(value), expires, path, domain, secure].join('');
+    } else { // only name given, get cookie
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+};
+</script>
+
+ 
